@@ -1,0 +1,5 @@
+module simple_Producer
+
+go 1.24.11
+
+require github.com/rabbitmq/amqp091-go v1.10.0 // indirect
