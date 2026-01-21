@@ -27,7 +27,10 @@ func main() {
 		log.Fatalln("Failed to declare queue:", err)
 	}
 
-	
+	 err = ch.Qos(1,  0,  false)
+	 if err != nil {
+		log.Fatalln("Failed to set Qos:", err)
+	}
 	msgs, err := ch.Consume(q.Name, "", false, false, false, false, nil)
 	if err != nil {
 		log.Fatalln("Failed to register a consumer:", err)
