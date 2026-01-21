@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-
-	conn, err := amqp091.Dial("amqp://guest:guest@localhost:5672")
+	// Connect to RabbitMQ
+	conn, err := amqp091.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		log.Fatalln("Failed to connect to RabbitMQ:", err)
 	}
@@ -20,54 +20,37 @@ func main() {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalln("Failed to establish a connection:", err)
+		log.Fatalln("Failed to open a channel:", err)
 	}
 	defer ch.Close()
 
-	queueNames := []string{"queue1", "queue2"}
-
-	for _, name := range queueNames {
-
-		_, err := ch.QueueDeclare(name, true, false, false, false, amqp091.Table{
-			"x-queue-type": "quorum",
-		})
-		if err != nil {
-			log.Fatalln("Failed to declare a queue:", err)
-		}
-
-		err = ch.QueueBind(name, "", "x.logs", false, nil)
-		if err != nil {
-			log.Fatalln("Failed to bind queue:", err)
-		}
-	}
-
+	// Read queue name from user
 	reader := bufio.NewReader(os.Stdin)
-	var selectedQueue string
+	fmt.Print("Enter queue name to listen: ")
+	queueName, _ := reader.ReadString('\n')
+	queueName = strings.TrimSpace(queueName)
 
-	for {
-		fmt.Print("Enter the queue name to consume from (options: queue1/queue2):")
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			log.Fatalln("Failed to read string:", err)
-		}
-		input = strings.TrimSpace(input)
-
-		if input == queueNames[0] || input == queueNames[1] {
-			selectedQueue = input
-			break
-		}
-		fmt.Println("Invalid queue name, Please enter either:", queueNames[0], "or", queueNames[1])
-	}
-
-	fmt.Println("Listening on queue:", selectedQueue)
-
-	msgs, err := ch.Consume(selectedQueue, "", false, false, false, false, nil)
+	// Start consuming
+	msgs, err := ch.Consume(
+		queueName, // queue
+		"",        // consumer tag
+		false,     // autoAck = false (manual ACK)
+		false,     // exclusive
+		false,     // no-local
+		false,     // no-wait
+		nil,
+	)
 	if err != nil {
-		log.Fatalln("Failed to register the consumer:", err)
+		log.Fatalln("Failed to register consumer:", err)
 	}
 
+	log.Println("Waiting for messages on queue:", queueName)
+
+	// Receive messages
 	for msg := range msgs {
-		log.Printf("Received: %s", msg.Body)
-		msg.Ack(false) // false means "ack this single message only", 'true' in case of batch processing
+		log.Println("Received:", string(msg.Body))
+
+		// ACK message
+		msg.Ack(false)
 	}
 }
