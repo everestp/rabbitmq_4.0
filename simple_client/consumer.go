@@ -6,8 +6,9 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-func main() {
-	conn, err := amqp091.Dial("amqp://guest:guest@localhost:5672/")
+
+func main(){
+		conn, err := amqp091.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		log.Fatalln("Failed to connect to RabbitMQ:", err)
 	}
@@ -19,8 +20,7 @@ func main() {
 	}
 	defer ch.Close()
 
-	// declare the queue
-	q, err := ch.QueueDeclare(
+		q, err := ch.QueueDeclare(
 		"hello", // queue name
 		false,   // durable
 		false,   // delete when unused
@@ -32,17 +32,13 @@ func main() {
 		log.Fatalln("Failed to declare a queue:", err)
 	}
 
-	err = ch.Publish(
-		"",     // exchange
-		q.Name, // routing key
-		false,
-		false,
-		amqp091.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte("Hello Everest"),
-		},
-	)
+
+	 masgs , err := ch.Consume(q.Name, "", false,  false,  false,  false, nil)
 	if err != nil {
-		log.Fatalln("Failed to publish the message:", err)
+		log.Fatalln("Failed to declare a queue:", err)
+	}
+	for msg := range masgs{
+		log.Printf("Received  %s:" , msg.Body)
+		
 	}
 }
